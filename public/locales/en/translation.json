@@ -1,0 +1,11 @@
+{
+    "welcome": "Welcome to Core Service",
+    "login": "Login",
+    "register": "Register",
+    "send_otp": "Send OTP",
+    "verify_otp": "Verify OTP",
+    "enter_email": "Enter your email address",
+    "enter_mobile": "Enter your mobile number",
+    "select_role": "Select your role"
+  }
+  

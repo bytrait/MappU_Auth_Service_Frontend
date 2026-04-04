@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+/* =========================
+   DESIGN TOKENS
+========================= */
+:root {
+  /* Brand */
+  --color-primary: rgb(18 51 154);    /* Blue */
+  --color-accent: rgb(21 208 90);     /* Green */
+
+  /* Backgrounds */
+  --color-background: rgb(255 255 255);
+  --color-surface: rgb(249 250 251);
+
+  /* Text */
+  --color-text-primary: rgb(17 24 39);
+  --color-text-secondary: rgb(107 114 128);
+
+  /* Borders */
+  --color-border: rgb(229 231 235);
+
+  /* States */
+  --color-success: rgb(21 208 90);
+  --color-error: rgb(239 68 68);
+  --color-warning: rgb(245 158 11);
+
+  /* Disabled */
+  --color-disabled: rgb(156 163 175);
+}
+
+/* =========================
+   UTILITIES (CORE)
+========================= */
+@layer utilities {
+
+  /* ===== Backgrounds ===== */
+  .bg-primary { background-color: var(--color-primary); }
+  .bg-accent { background-color: var(--color-accent); }
+  .bg-surface { background-color: var(--color-surface); }
+  .bg-background { background-color: var(--color-background); }
+
+  /* ===== Text ===== */
+  .text-primary { color: var(--color-primary); }
+  .text-accent { color: var(--color-accent); }
+  .text-default { color: var(--color-text-primary); }
+  .text-muted { color: var(--color-text-secondary); }
+
+  /* ===== Borders ===== */
+  .border-default { border-color: var(--color-border); }
+  .border-primary { border-color: var(--color-primary); }
+  .focus\:border-primary:focus { border-color: var(--color-primary); }
+
+  /* =========================
+     HOVER STATES
+  ========================= */
+
+  /* Background hover */
+  .hover\:bg-primary:hover {
+    background-color: var(--color-primary);
+    filter: brightness(0.9);
+  }
+
+  .hover\:bg-accent:hover {
+    background-color: var(--color-accent);
+    filter: brightness(0.9);
+  }
+
+  /* Text hover */
+  .hover\:text-primary:hover { color: var(--color-primary); }
+  .hover\:text-accent:hover { color: var(--color-accent); }
+
+  /* Border hover */
+  .hover\:border-primary:hover { border-color: var(--color-primary); }
+  .hover\:border-accent:hover { border-color: var(--color-accent); }
+
+  /* =========================
+     ACTIVE STATES
+  ========================= */
+  .active\:bg-primary:active {
+    background-color: var(--color-primary);
+    filter: brightness(0.8);
+  }
+
+  .active\:bg-accent:active {
+    background-color: var(--color-accent);
+    filter: brightness(0.8);
+  }
+
+  /* =========================
+     DISABLED STATES
+  ========================= */
+  .disabled\:bg-disabled:disabled {
+    background-color: var(--color-disabled);
+  }
+
+  .disabled\:text-muted:disabled {
+    color: var(--color-text-secondary);
+  }
+
+  .disabled\:cursor-not-allowed:disabled {
+    cursor: not-allowed;
+  }
+
+  /* =========================
+     COMPONENT HELPERS
+  ========================= */
+
+  /* Card */
+  .card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    padding: 1rem;
+  }
+
+  /* Input */
+  .input {
+    background-color: var(--color-background);
+    border: 1px solid var(--color-border);
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    outline: none;
+  }
+
+  .input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary);
+  }
+
+  /* Button Base */
+  .btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  /* Button Variants */
+  .btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    filter: brightness(0.9);
+  }
+
+  .btn-accent {
+    background-color: var(--color-accent);
+    color: white;
+  }
+
+  .btn-accent:hover {
+    filter: brightness(0.9);
+  }
+
+  .btn-outline {
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary);
+    background-color: transparent;
+  }
+
+  .btn-outline:hover {
+    background-color: var(--color-primary);
+    color: white;
+  }
+}
