@@ -5,7 +5,9 @@ import rightTop from '../assets/image1.png';
 import rightBottom from '../assets/image2.png';
 const StudentRegistration = () => {
     return (
-        <StudentRegistrationForm />
+        <div className="bg-[#012A9E] p-4 min-h-screen">
+            <StudentRegistrationForm />
+        </div>
     );
 }
 

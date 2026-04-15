@@ -107,7 +107,7 @@ const EmailOtpForm = () => {
     }, [resendTimer]);
 
     return (
-        <div className="min-h-screen mx-auto flex max-w-[1600px]">
+        <div className="min-h-screen mx-auto flex max-w-[1600px] bg-white rounded-2xl">
 
             {/* LEFT IMAGE */}
             <ImageSection image={authImage}>

@@ -140,7 +140,7 @@ const StudentRegistrationForm = () => {
   }, [resendTimer]);
 
   return (
-    <div className="min-h-screen flex max-w-[1600px] mx-auto">
+    <div className="min-h-screen flex max-w-[1600px] mx-auto bg-white rounded-2xl overflow-hidden">
 
       {/* LEFT SIDE */}
       <ImageSection image={authImage}>
