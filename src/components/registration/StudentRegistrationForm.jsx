@@ -140,7 +140,7 @@ const StudentRegistrationForm = () => {
   }, [resendTimer]);
 
   return (
-    <div className="min-h-screen flex max-w-[1600px] mx-auto bg-white rounded-2xl overflow-hidden">
+    <div className="min-h-screen flex max-w-[1600px] mx-auto bg-white rounded-2xl overflow-hidden p-2">
 
       {/* LEFT SIDE */}
       <ImageSection image={authImage}>
@@ -149,7 +149,7 @@ const StudentRegistrationForm = () => {
 
       {/* RIGHT SIDE */}
       <AuthCard>
-        <AuthHeader logo={logo} />
+        <AuthHeader logo={logo} page={"Sign Up"} />
 
         <form
           onSubmit={handleSubmit(onSubmit)}
