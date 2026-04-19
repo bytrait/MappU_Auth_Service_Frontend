@@ -3,7 +3,7 @@
 const AuthHeader = ({ logo, page }) => {
   return (
     <div className="text-center mb-6">
-      <img src={logo} alt="Logo" className="h-24 mx-auto mb-6" />
+      <img src={logo} alt="Logo" className="h-16 mx-auto mb-6" />
 
       <h2 className="text-2xl text-default font-semibold">
         {page} to your MapU account
