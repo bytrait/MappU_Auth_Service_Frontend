@@ -8,6 +8,7 @@ import {
   sendRegisterOtp,
   verifyRegisterOtp,
   registerUser,
+  getReferenceCodeDetails,
 } from '../../api/authService';
 
 import Input from '../UI/Input';
@@ -20,7 +21,6 @@ import OverlayCard from '../common/OverlayCard';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
-// dummy paths (replace later)
 import authImage from '../../assets/auth-image.jpeg';
 import logo from '../../assets/bytrait_logo.png';
 
@@ -33,16 +33,35 @@ const StudentRegistrationForm = () => {
   const [resendTimer, setResendTimer] = useState(0);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  const [referenceLoading, setReferenceLoading] = useState(false);
+  const [referenceDetails, setReferenceDetails] = useState(null);
+  const [selectedSchoolId, setSelectedSchoolId] = useState('');
+  const [isPersonalRegistration, setIsPersonalRegistration] = useState(false); useState('');
+
   const {
     register,
     handleSubmit,
     getValues,
+    watch,
+    setValue,
     setError,
+    clearErrors,
     formState: { errors, isSubmitting, isValid },
   } = useForm({
     resolver: zodResolver(RegistrationSchema),
     mode: 'onChange',
+    defaultValues: {
+      fullName: '',
+      email: '',
+      otp: '',
+      contact: '',
+      referenceCode: '',
+      registrationType: '',
+      selectedSchoolId: '',
+    },
   });
+
+  const referenceCode = watch('referenceCode');
 
   const isValidEmail = (email) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -53,20 +72,29 @@ const StudentRegistrationForm = () => {
     const email = getValues('email');
 
     if (!isValidEmail(email)) {
-      setError('email', { message: 'Enter a valid email' });
+      setError('email', {
+        type: 'manual',
+        message: 'Enter a valid email address',
+      });
       return;
     }
 
     try {
       await sendRegisterOtp({ email });
-      localStorage.setItem(RESEND_STORAGE_KEY, Date.now().toString());
+
+      localStorage.setItem(
+        RESEND_STORAGE_KEY,
+        Date.now().toString()
+      );
 
       setIsOtpSent(true);
       setResendTimer(RESEND_OTP_TIMEOUT);
 
       toast.success('OTP sent successfully');
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Failed to send OTP');
+      toast.error(
+        err?.response?.data?.message || 'Failed to send OTP'
+      );
     }
   };
 
@@ -74,18 +102,101 @@ const StudentRegistrationForm = () => {
     const { email, otp } = getValues();
 
     if (!isOtpValid(otp)) {
-      setError('otp', { message: 'OTP must be 6 digits' });
+      setError('otp', {
+        type: 'manual',
+        message: 'OTP must be exactly 6 digits',
+      });
       return;
     }
 
     try {
       await verifyRegisterOtp({ email, otp });
+
       setIsOtpVerified(true);
+      clearErrors('otp');
+
       localStorage.removeItem(RESEND_STORAGE_KEY);
+
       toast.success('OTP verified successfully');
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'OTP verification failed');
+      setError('otp', {
+        type: 'manual',
+        message:
+          err?.response?.data?.message ||
+          'OTP verification failed',
+      });
+
+      toast.error(
+        err?.response?.data?.message ||
+        'OTP verification failed'
+      );
     }
+  };
+
+  const handleSchoolChange = (e) => {
+    const schoolId = e.target.value;
+
+    setSelectedSchoolId(schoolId);
+
+    if (schoolId) {
+      setIsPersonalRegistration(false);
+
+      setValue('registrationType', 'SCHOOL', {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+
+      setValue('selectedSchoolId', schoolId, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    } else {
+      setValue('registrationType', '', {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+
+      setValue('selectedSchoolId', '', {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+
+    clearErrors('registrationType');
+    clearErrors('selectedSchoolId');
+  };
+
+  const handlePersonalRegistrationChange = (e) => {
+    const checked = e.target.checked;
+
+    setIsPersonalRegistration(checked);
+
+    if (checked) {
+      setSelectedSchoolId('');
+
+      setValue('registrationType', 'INDIVIDUAL', {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+
+      setValue('selectedSchoolId', '', {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    } else {
+      setValue('registrationType', '', {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+
+      setValue('selectedSchoolId', '', {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+
+    clearErrors('registrationType');
+    clearErrors('selectedSchoolId');
   };
 
   const onSubmit = async (data) => {
@@ -94,28 +205,113 @@ const StudentRegistrationForm = () => {
       return;
     }
 
-    if (!data.otp || !isOtpVerified) {
-      setError('otp', { message: 'OTP verification is required' });
+    if (!isOtpVerified) {
+      setError('otp', {
+        type: 'manual',
+        message: 'Please verify OTP before continuing',
+      });
       return;
     }
 
     try {
-      await registerUser({
+      const payload = {
         ...data,
         role: 'STUDENT',
-      });
+        referenceCode: data.referenceCode?.toUpperCase(),
+      };
+
+      console.log('Registration Payload:', payload);
+
+      await registerUser(payload);
 
       toast.success('Registration successful');
+
       window.location.href =
         import.meta.env.VITE_CAREER_GUIDANCE_PLATFORM_URL +
-        '/counsellor/students';
+        '/';
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Registration failed');
+      const backendMessage =
+        err?.response?.data?.message;
+
+      const backendErrors =
+        err?.response?.data?.errors;
+
+      if (Array.isArray(backendErrors)) {
+        backendErrors.forEach((fieldError) => {
+          const fieldName = fieldError.path?.[0];
+
+          if (fieldName) {
+            setError(fieldName, {
+              type: 'server',
+              message: fieldError.message,
+            });
+          }
+        });
+      }
+
+      toast.error(
+        backendMessage || 'Registration failed'
+      );
     }
   };
 
   useEffect(() => {
-    const lastSent = localStorage.getItem(RESEND_STORAGE_KEY);
+    const fetchReferenceDetails = async () => {
+      if (!referenceCode || referenceCode.length !== 6) {
+        setReferenceDetails(null);
+        setSelectedSchoolId('');
+        setIsPersonalRegistration(false);
+        setValue('registrationType', '', {
+          shouldValidate: true,
+        });
+
+        setValue('selectedSchoolId', '', {
+          shouldValidate: true,
+        });
+
+        return;
+      }
+
+      try {
+        setReferenceLoading(true);
+
+        const response = await getReferenceCodeDetails(
+          referenceCode.toUpperCase()
+        );
+
+        setReferenceDetails(response.data.data);
+
+        clearErrors('referenceCode');
+      } catch (err) {
+        setReferenceDetails(null);
+        setSelectedSchoolId('');
+        setIsPersonalRegistration(false);
+        setValue('registrationType', '', {
+          shouldValidate: true,
+        });
+
+        setValue('selectedSchoolId', '', {
+          shouldValidate: true,
+        });
+
+        setError('referenceCode', {
+          type: 'manual',
+          message:
+            err?.response?.data?.message ||
+            'Invalid reference code',
+        });
+      } finally {
+        setReferenceLoading(false);
+      }
+    };
+
+    fetchReferenceDetails();
+  }, [referenceCode, clearErrors, setError, setValue]);
+
+  useEffect(() => {
+    const lastSent = localStorage.getItem(
+      RESEND_STORAGE_KEY
+    );
 
     if (lastSent) {
       const elapsed = Math.floor(
@@ -131,31 +327,27 @@ const StudentRegistrationForm = () => {
 
   useEffect(() => {
     if (resendTimer > 0) {
-      const timer = setTimeout(
-        () => setResendTimer(resendTimer - 1),
-        1000
-      );
+      const timer = setTimeout(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+
       return () => clearTimeout(timer);
     }
   }, [resendTimer]);
 
   return (
     <div className="min-h-screen flex max-w-[1600px] mx-auto bg-white rounded-2xl overflow-hidden p-2">
-
-      {/* LEFT SIDE */}
       <ImageSection image={authImage}>
         <OverlayCard />
       </ImageSection>
 
-      {/* RIGHT SIDE */}
       <AuthCard>
-        <AuthHeader logo={logo} page={"Sign Up"} />
+        <AuthHeader logo={logo} page={'Sign Up'} />
 
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-4"
         >
-          {/* Full Name */}
           <Input
             label="Full Name"
             {...register('fullName')}
@@ -163,7 +355,6 @@ const StudentRegistrationForm = () => {
             placeholder="Enter your full name"
           />
 
-          {/* Email + OTP Button */}
           <div className="flex gap-2 items-end">
             <div className="flex-1">
               <Input
@@ -193,7 +384,6 @@ const StudentRegistrationForm = () => {
             </Button>
           </div>
 
-          {/* OTP */}
           {isOtpSent && (
             <div className="flex gap-2 items-end">
               <div className="flex-1">
@@ -216,7 +406,6 @@ const StudentRegistrationForm = () => {
             </div>
           )}
 
-          {/* Contact */}
           <Input
             label="Contact Number"
             {...register('contact')}
@@ -224,20 +413,90 @@ const StudentRegistrationForm = () => {
             placeholder="Enter contact number"
           />
 
-          {/* Reference Code */}
-          <Input
-            label="Reference Code"
-            {...register('referenceCode')}
-            error={errors.referenceCode?.message}
-            placeholder="Enter counsellor or institution code"
-          />
+          <div className="space-y-3">
+            <Input
+              label="Reference Code"
+              {...register('referenceCode')}
+              error={errors.referenceCode?.message}
+              placeholder="Enter counsellor reference code"
+            />
 
-          {/* Terms */}
+            {referenceLoading && (
+              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                Validating reference code...
+              </div>
+            )}
+
+            {referenceDetails && (
+              <div className="rounded-2xl border border-green-100 bg-green-50 p-4 space-y-4">
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select School
+                  </label>
+
+                  <select
+                    value={selectedSchoolId}
+                    onChange={handleSchoolChange}
+                    disabled={isPersonalRegistration}
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none focus:border-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Select a school</option>
+                    {referenceDetails.registrationOptions
+                      .filter((option) => option.type !== 'INDIVIDUAL')
+                      .map((option) => (
+                        <option key={option.schoolId} value={option.schoolId}>
+                          {option.label}
+                        </option>
+                      ))}
+                  </select>
+
+                  {errors.selectedSchoolId?.message && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.selectedSchoolId.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center mt-4">
+                  <input
+                    type="checkbox"
+                    checked={isPersonalRegistration}
+                    onChange={handlePersonalRegistrationChange}
+                    disabled={!!selectedSchoolId}
+                    className="accent-blue-600 disabled:cursor-not-allowed"
+                  />
+                  <label className="ml-2 text-sm text-gray-700">
+                    Personal Registration
+                  </label>
+                </div>
+
+                {errors.registrationType?.message && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.registrationType.message}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <input
+              type="hidden"
+              {...register('registrationType')}
+            />
+
+            <input
+              type="hidden"
+              {...register('selectedSchoolId')}
+            />
+          </div>
+
           <div className="flex items-start gap-2 mt-2">
             <input
               type="checkbox"
               checked={acceptedTerms}
-              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              onChange={(e) =>
+                setAcceptedTerms(e.target.checked)
+              }
               className="mt-1 accent-blue-600"
             />
 
@@ -253,14 +512,12 @@ const StudentRegistrationForm = () => {
             </p>
           </div>
 
-          {/* Submit */}
           <Button
             type="submit"
             className="w-full mt-4 rounded-full"
             disabled={
               isSubmitting ||
               !isOtpVerified ||
-              !isValid ||
               !acceptedTerms
             }
           >
@@ -268,7 +525,6 @@ const StudentRegistrationForm = () => {
           </Button>
         </form>
 
-        {/* Footer */}
         <p className="text-center text-sm mt-6">
           Already have an account?{' '}
           <Link to="/" className="text-blue-600">
