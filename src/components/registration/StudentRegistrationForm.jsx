@@ -36,7 +36,7 @@ const StudentRegistrationForm = () => {
   const [referenceLoading, setReferenceLoading] = useState(false);
   const [referenceDetails, setReferenceDetails] = useState(null);
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
-  const [isPersonalRegistration, setIsPersonalRegistration] = useState(false); useState('');
+  const [registrationMode, setRegistrationMode] = useState('');
 
   const {
     register,
@@ -139,8 +139,6 @@ const StudentRegistrationForm = () => {
     setSelectedSchoolId(schoolId);
 
     if (schoolId) {
-      setIsPersonalRegistration(false);
-
       setValue('registrationType', 'SCHOOL', {
         shouldValidate: true,
         shouldDirty: true,
@@ -193,6 +191,23 @@ const StudentRegistrationForm = () => {
         shouldValidate: true,
         shouldDirty: true,
       });
+    }
+
+    clearErrors('registrationType');
+    clearErrors('selectedSchoolId');
+  };
+
+  const handleSchoolCheckboxChange = (e) => {
+    const checked = e.target.checked;
+
+    if (checked) {
+      setIsPersonalRegistration(false); // Uncheck "Individual" checkbox
+      setIsSchoolSelected(true); // Enable the dropdown
+    } else {
+      setIsSchoolSelected(false); // Disable the dropdown
+      setSelectedSchoolId(''); // Clear the selected school
+      setValue('registrationType', '', { shouldValidate: true });
+      setValue('selectedSchoolId', '', { shouldValidate: true });
     }
 
     clearErrors('registrationType');
@@ -260,7 +275,7 @@ const StudentRegistrationForm = () => {
       if (!referenceCode || referenceCode.length !== 6) {
         setReferenceDetails(null);
         setSelectedSchoolId('');
-        setIsPersonalRegistration(false);
+        setRegistrationMode('');
         setValue('registrationType', '', {
           shouldValidate: true,
         });
@@ -334,6 +349,28 @@ const StudentRegistrationForm = () => {
       return () => clearTimeout(timer);
     }
   }, [resendTimer]);
+
+  const handleRegistrationModeChange = (e) => {
+    const value = e.target.value;
+
+    setRegistrationMode(value);
+
+    setValue('registrationType', value, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+
+    if (value !== 'SCHOOL') {
+      setSelectedSchoolId('');
+      setValue('selectedSchoolId', '', {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+    }
+
+    clearErrors('registrationType');
+    clearErrors('selectedSchoolId');
+  };
 
   return (
     <div className="min-h-screen flex max-w-[1600px] mx-auto bg-white rounded-2xl overflow-hidden p-2">
@@ -427,57 +464,81 @@ const StudentRegistrationForm = () => {
               </div>
             )}
 
-            {referenceDetails && (
-              <div className="rounded-2xl border border-green-100 bg-green-50 p-4 space-y-4">
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select School
-                  </label>
-
-                  <select
-                    value={selectedSchoolId}
-                    onChange={handleSchoolChange}
-                    disabled={isPersonalRegistration}
-                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 outline-none focus:border-primary disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  >
-                    <option value="">Select a school</option>
-                    {referenceDetails.registrationOptions
-                      .filter((option) => option.type !== 'INDIVIDUAL')
-                      .map((option) => (
-                        <option key={option.schoolId} value={option.schoolId}>
-                          {option.label}
-                        </option>
-                      ))}
-                  </select>
-
-                  {errors.selectedSchoolId?.message && (
-                    <p className="mt-1 text-sm text-red-500">
-                      {errors.selectedSchoolId.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center mt-4">
+            {/* Always show the checkboxes and dropdown */}
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-4">
+              <div className="flex items-center gap-6">
+                {/* Individual Radio */}
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
-                    type="checkbox"
-                    checked={isPersonalRegistration}
-                    onChange={handlePersonalRegistrationChange}
-                    disabled={!!selectedSchoolId}
-                    className="accent-blue-600 disabled:cursor-not-allowed"
+                    type="radio"
+                    name="registrationMode"
+                    value="INDIVIDUAL"
+                    checked={registrationMode === 'INDIVIDUAL'}
+                    onChange={handleRegistrationModeChange}
+                    disabled={!referenceDetails}
+                    className="accent-blue-600"
                   />
-                  <label className="ml-2 text-sm text-gray-700">
-                    Personal Registration
-                  </label>
-                </div>
+                  <span className={`${!referenceDetails ? 'text-gray-400' : ''}`}>
+                    Individual
+                  </span>
+                </label>
 
-                {errors.registrationType?.message && (
+                {/* School Radio */}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="registrationMode"
+                    value="SCHOOL"
+                    checked={registrationMode === 'SCHOOL'}
+                    onChange={handleRegistrationModeChange}
+                    disabled={!referenceDetails}
+                    className="accent-blue-600"
+                  />
+                  <span className={`${!referenceDetails ? 'text-gray-400' : ''}`}>
+                    School
+                  </span>
+                </label>
+              </div>
+
+              {/* Dropdown for selecting a school */}
+              <div>
+                <label
+                  className={`block text-sm font-medium mb-2 ${!referenceDetails || !selectedSchoolId
+                    ? 'text-gray-400'
+                    : 'text-gray-700'
+                    }`}
+                >
+                  Select School
+                </label>
+                <select
+                  value={selectedSchoolId}
+                  onChange={handleSchoolChange}
+                  disabled={!referenceDetails || registrationMode !== 'SCHOOL'}
+                  className={`w-full rounded-xl border px-4 py-3 outline-none focus:border-primary transition ${!referenceDetails || registrationMode !== 'SCHOOL'
+                      ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+                      : registrationMode === 'SCHOOL'
+                        ? 'bg-white border-gray-200 text-gray-700'
+                        : 'bg-white border-gray-200 text-gray-400'
+                    }`}
+                >
+                  <option value="" >
+                    Select a school
+                  </option>                  {referenceDetails?.registrationOptions
+                    ?.filter((option) => option.type !== 'INDIVIDUAL')
+                    .map((option) => (
+                      <option key={option.schoolId} value={option.schoolId}>
+                        {option.label}
+                      </option>
+                    ))}
+                </select>
+
+                {errors.selectedSchoolId?.message && (
                   <p className="mt-1 text-sm text-red-500">
-                    {errors.registrationType.message}
+                    {errors.selectedSchoolId.message}
                   </p>
                 )}
               </div>
-            )}
+            </div>
 
             <input
               type="hidden"
