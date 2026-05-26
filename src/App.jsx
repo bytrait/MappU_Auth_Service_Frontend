@@ -15,6 +15,7 @@ import StudentDashboard from './pages/dashborad/StudentDashboard';
 import CounsellorDashboard from './pages/dashborad/CounsellorDashboard';
 import InstitutionDashboard from './pages/dashborad/InstitutionDashboard';
 import TermsAndConditionsPage from './pages/TermsAndConditionsPage';
+import {LoginResolver,StudentRegistrationResolver} from './pages/LoginResolver';
 
 const App = () => (
   <>
@@ -24,7 +25,7 @@ const App = () => (
         path="/"
         element={
           <PrivateRoute isPublic>
-            <Login />
+            <LoginResolver />
           </PrivateRoute>
         }
       />
@@ -41,7 +42,7 @@ const App = () => (
         path="/register/student"
         element={
           <PrivateRoute isPublic>
-            <StudentRegistration />
+            <StudentRegistrationResolver />
           </PrivateRoute>
         }
       />

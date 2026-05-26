@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 // Dummy paths (you replace later)
 import authImage from '../../assets/auth-image.jpeg';
-import logo from '../../assets/bytrait_logo.png';
+import logo from '../../assets/mappu_logo.png';
 
 const RESEND_OTP_TIMEOUT = 300;
 const RESEND_STORAGE_KEY = 'otp_last_sent';

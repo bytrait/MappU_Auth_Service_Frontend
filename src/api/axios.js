@@ -5,4 +5,11 @@ const api = axios.create({
   withCredentials: true,
 });
 
+const careerApi = axios.create({
+  baseURL: import.meta.env.VITE_CAREER_GUIDANCE_PLATFORM_API_URL || "/",
+  withCredentials: true,
+})
+
 export default api;
+
+export { careerApi };
