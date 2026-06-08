@@ -1,9 +1,16 @@
 @import "tailwindcss";
 
+body {
+  font-family: var(--font-urbanist);
+}
+
 /* =========================
    DESIGN TOKENS
 ========================= */
 :root {
+  --font-playfair: 'Playfair Display', Georgia, serif;
+  --font-urbanist: 'Urbanist', system-ui, sans-serif;
+
   /* Brand */
   --color-primary: rgb(18 51 154);    /* Blue */
   --color-accent: rgb(21 208 90);     /* Green */
@@ -44,6 +51,9 @@
   .text-accent { color: var(--color-accent); }
   .text-default { color: var(--color-text-primary); }
   .text-muted { color: var(--color-text-secondary); }
+
+  .font-playfair { font-family: var(--font-playfair); }
+  .font-urbanist { font-family: var(--font-urbanist); }
 
   /* ===== Borders ===== */
   .border-default { border-color: var(--color-border); }

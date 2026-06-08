@@ -1,15 +1,16 @@
 // StudentRegistrationForm.jsx
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { RegistrationSchema } from '../../validators/registerUser.validator';
+import { StudentRegistrationSchema } from '../../validators/studentRegister.validator';
 import {
   sendRegisterOtp,
   verifyRegisterOtp,
-  registerUser,
+  registerStudent,
   getReferenceCodeDetails,
 } from '../../api/authService';
+import { resolvePostRegisterRedirect } from '../../utils/postRegisterRedirect';
 
 import Input from '../UI/Input';
 import Button from '../UI/Button';
@@ -26,6 +27,22 @@ import logo from '../../assets/bytrait_logo.png';
 
 const RESEND_STORAGE_KEY = 'register_otp_last_sent';
 const RESEND_OTP_TIMEOUT = 300;
+const REFERENCE_PREVIEW_DEBOUNCE_MS = 400;
+
+const REFERENCE_PREVIEW_CODES = new Set([
+  'CODE_NOT_YET_ACTIVE',
+  'CODE_INVALID',
+  'CODE_EXPIRED',
+  'CODE_IN_USE',
+  'SCHOOL_INACTIVE',
+]);
+
+const isReferenceCodeError = (err) =>
+  err?.code?.startsWith('CODE_') ||
+  REFERENCE_PREVIEW_CODES.has(err?.code) ||
+  err?.status === 400 ||
+  err?.status === 404 ||
+  err?.status === 409;
 
 const StudentRegistrationForm = () => {
   const [isOtpSent, setIsOtpSent] = useState(false);
@@ -35,8 +52,7 @@ const StudentRegistrationForm = () => {
 
   const [referenceLoading, setReferenceLoading] = useState(false);
   const [referenceDetails, setReferenceDetails] = useState(null);
-  const [selectedSchoolId, setSelectedSchoolId] = useState('');
-  const [registrationMode, setRegistrationMode] = useState('');
+  const previewRequestId = useRef(0);
 
   const {
     register,
@@ -46,9 +62,9 @@ const StudentRegistrationForm = () => {
     setValue,
     setError,
     clearErrors,
-    formState: { errors, isSubmitting, isValid },
+    formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(RegistrationSchema),
+    resolver: zodResolver(StudentRegistrationSchema),
     mode: 'onChange',
     defaultValues: {
       fullName: '',
@@ -56,8 +72,6 @@ const StudentRegistrationForm = () => {
       otp: '',
       contact: '',
       referenceCode: '',
-      registrationType: '',
-      selectedSchoolId: '',
     },
   });
 
@@ -67,6 +81,46 @@ const StudentRegistrationForm = () => {
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const isOtpValid = (otp) => /^\d{6}$/.test(otp);
+
+  const fetchReferencePreview = useCallback(
+    async (rawCode) => {
+      const code = rawCode?.trim().toUpperCase() || '';
+
+      if (code.length < 4) {
+        setReferenceDetails(null);
+        clearErrors('referenceCode');
+        return;
+      }
+
+      const requestId = ++previewRequestId.current;
+
+      try {
+        setReferenceLoading(true);
+
+        const response = await getReferenceCodeDetails(code);
+
+        if (previewRequestId.current !== requestId) return;
+        if (getValues('referenceCode').toUpperCase() !== code) return;
+
+        setReferenceDetails(response.data.data);
+        clearErrors('referenceCode');
+      } catch (err) {
+        if (previewRequestId.current !== requestId) return;
+        if (getValues('referenceCode').toUpperCase() !== code) return;
+
+        setReferenceDetails(null);
+        setError('referenceCode', {
+          type: 'manual',
+          message: err.message || 'Invalid reference code',
+        });
+      } finally {
+        if (previewRequestId.current === requestId) {
+          setReferenceLoading(false);
+        }
+      }
+    },
+    [clearErrors, getValues, setError]
+  );
 
   const handleSendOtp = async () => {
     const email = getValues('email');
@@ -92,9 +146,7 @@ const StudentRegistrationForm = () => {
 
       toast.success('OTP sent successfully');
     } catch (err) {
-      toast.error(
-        err?.response?.data?.message || 'Failed to send OTP'
-      );
+      toast.error(err.message || 'Failed to send OTP');
     }
   };
 
@@ -121,97 +173,11 @@ const StudentRegistrationForm = () => {
     } catch (err) {
       setError('otp', {
         type: 'manual',
-        message:
-          err?.response?.data?.message ||
-          'OTP verification failed',
+        message: err.message || 'OTP verification failed',
       });
 
-      toast.error(
-        err?.response?.data?.message ||
-        'OTP verification failed'
-      );
+      toast.error(err.message || 'OTP verification failed');
     }
-  };
-
-  const handleSchoolChange = (e) => {
-    const schoolId = e.target.value;
-
-    setSelectedSchoolId(schoolId);
-
-    if (schoolId) {
-      setValue('registrationType', 'SCHOOL', {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-
-      setValue('selectedSchoolId', schoolId, {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-    } else {
-      setValue('registrationType', '', {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-
-      setValue('selectedSchoolId', '', {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-    }
-
-    clearErrors('registrationType');
-    clearErrors('selectedSchoolId');
-  };
-
-  const handlePersonalRegistrationChange = (e) => {
-    const checked = e.target.checked;
-
-    setIsPersonalRegistration(checked);
-
-    if (checked) {
-      setSelectedSchoolId('');
-
-      setValue('registrationType', 'INDIVIDUAL', {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-
-      setValue('selectedSchoolId', '', {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-    } else {
-      setValue('registrationType', '', {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-
-      setValue('selectedSchoolId', '', {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-    }
-
-    clearErrors('registrationType');
-    clearErrors('selectedSchoolId');
-  };
-
-  const handleSchoolCheckboxChange = (e) => {
-    const checked = e.target.checked;
-
-    if (checked) {
-      setIsPersonalRegistration(false); // Uncheck "Individual" checkbox
-      setIsSchoolSelected(true); // Enable the dropdown
-    } else {
-      setIsSchoolSelected(false); // Disable the dropdown
-      setSelectedSchoolId(''); // Clear the selected school
-      setValue('registrationType', '', { shouldValidate: true });
-      setValue('selectedSchoolId', '', { shouldValidate: true });
-    }
-
-    clearErrors('registrationType');
-    clearErrors('selectedSchoolId');
   };
 
   const onSubmit = async (data) => {
@@ -228,28 +194,54 @@ const StudentRegistrationForm = () => {
       return;
     }
 
+    if (!referenceDetails) {
+      setError('referenceCode', {
+        type: 'manual',
+        message: 'Please enter a valid reference code',
+      });
+      return;
+    }
+
     try {
-      const payload = {
-        ...data,
-        role: 'STUDENT',
-        referenceCode: data.referenceCode?.toUpperCase(),
-      };
+      const response = await registerStudent({
+        fullName: data.fullName,
+        email: data.email,
+        contact: data.contact,
+        referenceCode:
+          referenceDetails.referenceCode || data.referenceCode,
+      });
 
-      console.log('Registration Payload:', payload);
+      const { message, payment } = response.data;
 
-      await registerUser(payload);
+      const redirectUrl = resolvePostRegisterRedirect({
+        payment: payment || null,
+        careerPlatformUrl:
+          import.meta.env.VITE_CAREER_GUIDANCE_PLATFORM_URL,
+      });
 
-      toast.success('Registration successful');
+      toast.success(message || 'Registration successful');
 
-      window.location.href =
-        import.meta.env.VITE_CAREER_GUIDANCE_PLATFORM_URL +
-        '/';
+      if (redirectUrl) {
+        window.location.href = redirectUrl;
+      }
     } catch (err) {
-      const backendMessage =
-        err?.response?.data?.message;
+      if (err.code === 'BILLING_STUDENT_PAYMENT_FAILED') {
+        toast.error(
+          err.message ||
+            'Payment setup failed. Please try again or contact support.'
+        );
+        return;
+      }
 
-      const backendErrors =
-        err?.response?.data?.errors;
+      if (isReferenceCodeError(err)) {
+        setError('referenceCode', {
+          type: 'server',
+          message: err.message || 'Registration failed',
+        });
+        return;
+      }
+
+      const backendErrors = err.details?.errors;
 
       if (Array.isArray(backendErrors)) {
         backendErrors.forEach((fieldError) => {
@@ -264,69 +256,30 @@ const StudentRegistrationForm = () => {
         });
       }
 
-      toast.error(
-        backendMessage || 'Registration failed'
-      );
+      if (err.status >= 500) {
+        toast.error(err.message || 'Registration failed');
+      } else if (!Array.isArray(backendErrors)) {
+        toast.error(err.message || 'Registration failed');
+      }
     }
   };
 
   useEffect(() => {
-    const fetchReferenceDetails = async () => {
-      if (!referenceCode || referenceCode.length !== 6) {
-        setReferenceDetails(null);
-        setSelectedSchoolId('');
-        setRegistrationMode('');
-        setValue('registrationType', '', {
-          shouldValidate: true,
-        });
+    if (!referenceCode || referenceCode.length < 4) {
+      setReferenceDetails(null);
+      clearErrors('referenceCode');
+      return;
+    }
 
-        setValue('selectedSchoolId', '', {
-          shouldValidate: true,
-        });
+    const timeoutId = setTimeout(() => {
+      fetchReferencePreview(referenceCode);
+    }, REFERENCE_PREVIEW_DEBOUNCE_MS);
 
-        return;
-      }
-
-      try {
-        setReferenceLoading(true);
-
-        const response = await getReferenceCodeDetails(
-          referenceCode.toUpperCase()
-        );
-
-        setReferenceDetails(response.data.data);
-
-        clearErrors('referenceCode');
-      } catch (err) {
-        setReferenceDetails(null);
-        setSelectedSchoolId('');
-        setIsPersonalRegistration(false);
-        setValue('registrationType', '', {
-          shouldValidate: true,
-        });
-
-        setValue('selectedSchoolId', '', {
-          shouldValidate: true,
-        });
-
-        setError('referenceCode', {
-          type: 'manual',
-          message:
-            err?.response?.data?.message ||
-            'Invalid reference code',
-        });
-      } finally {
-        setReferenceLoading(false);
-      }
-    };
-
-    fetchReferenceDetails();
-  }, [referenceCode, clearErrors, setError, setValue]);
+    return () => clearTimeout(timeoutId);
+  }, [referenceCode, clearErrors, fetchReferencePreview]);
 
   useEffect(() => {
-    const lastSent = localStorage.getItem(
-      RESEND_STORAGE_KEY
-    );
+    const lastSent = localStorage.getItem(RESEND_STORAGE_KEY);
 
     if (lastSent) {
       const elapsed = Math.floor(
@@ -350,36 +303,21 @@ const StudentRegistrationForm = () => {
     }
   }, [resendTimer]);
 
-  const handleRegistrationModeChange = (e) => {
-    const value = e.target.value;
+  const showSchoolContext =
+    referenceDetails?.display?.showSchoolName === true;
 
-    setRegistrationMode(value);
-
-    setValue('registrationType', value, {
-      shouldValidate: true,
-      shouldDirty: true,
-    });
-
-    if (value !== 'SCHOOL') {
-      setSelectedSchoolId('');
-      setValue('selectedSchoolId', '', {
-        shouldValidate: true,
-        shouldDirty: true,
-      });
-    }
-
-    clearErrors('registrationType');
-    clearErrors('selectedSchoolId');
-  };
+  const tokenLabel =
+    referenceDetails?.display?.subtitle ||
+    referenceDetails?.tokenLabel;
 
   return (
-    <div className="min-h-screen flex max-w-[1600px] mx-auto bg-white rounded-2xl overflow-hidden p-2">
+    <div className="min-h-screen flex max-w-[1600px] mx-auto bg-white rounded-2xl overflow-hidden p-4 md:p-6 gap-4 md:gap-8">
       <ImageSection image={authImage}>
         <OverlayCard />
       </ImageSection>
 
       <AuthCard>
-        <AuthHeader logo={logo} page={'Sign Up'} />
+        <AuthHeader logo={logo} />
 
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -453,9 +391,26 @@ const StudentRegistrationForm = () => {
           <div className="space-y-3">
             <Input
               label="Reference Code"
+              maxLength={20}
               {...register('referenceCode')}
+              onChange={(e) => {
+                const v = e.target.value
+                  .toUpperCase()
+                  .replace(/[^A-Z0-9]/g, '')
+                  .slice(0, 20);
+                setValue('referenceCode', v, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                });
+              }}
+              onBlur={() => {
+                const code = getValues('referenceCode');
+                if (code && code.length >= 4) {
+                  fetchReferencePreview(code);
+                }
+              }}
               error={errors.referenceCode?.message}
-              placeholder="Enter counsellor reference code"
+              placeholder="Enter reference code (4–20 characters)"
             />
 
             {referenceLoading && (
@@ -464,91 +419,45 @@ const StudentRegistrationForm = () => {
               </div>
             )}
 
-            {/* Always show the checkboxes and dropdown */}
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 space-y-4">
-              <div className="flex items-center gap-6">
-                {/* Individual Radio */}
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="registrationMode"
-                    value="INDIVIDUAL"
-                    checked={registrationMode === 'INDIVIDUAL'}
-                    onChange={handleRegistrationModeChange}
-                    disabled={!referenceDetails}
-                    className="accent-blue-600"
-                  />
-                  <span className={`${!referenceDetails ? 'text-gray-400' : ''}`}>
-                    Individual
-                  </span>
-                </label>
-
-                {/* School Radio */}
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="registrationMode"
-                    value="SCHOOL"
-                    checked={registrationMode === 'SCHOOL'}
-                    onChange={handleRegistrationModeChange}
-                    disabled={!referenceDetails}
-                    className="accent-blue-600"
-                  />
-                  <span className={`${!referenceDetails ? 'text-gray-400' : ''}`}>
-                    School
-                  </span>
-                </label>
-              </div>
-
-              {/* Dropdown for selecting a school */}
-              <div>
-                <label
-                  className={`block text-sm font-medium mb-2 ${!referenceDetails || !selectedSchoolId
-                    ? 'text-gray-400'
-                    : 'text-gray-700'
-                    }`}
-                >
-                  Select School
-                </label>
-                <select
-                  value={selectedSchoolId}
-                  onChange={handleSchoolChange}
-                  disabled={!referenceDetails || registrationMode !== 'SCHOOL'}
-                  className={`w-full rounded-xl border px-4 py-3 outline-none focus:border-primary transition ${!referenceDetails || registrationMode !== 'SCHOOL'
-                      ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
-                      : registrationMode === 'SCHOOL'
-                        ? 'bg-white border-gray-200 text-gray-700'
-                        : 'bg-white border-gray-200 text-gray-400'
-                    }`}
-                >
-                  <option value="" >
-                    Select a school
-                  </option>                  {referenceDetails?.registrationOptions
-                    ?.filter((option) => option.type !== 'INDIVIDUAL')
-                    .map((option) => (
-                      <option key={option.schoolId} value={option.schoolId}>
-                        {option.label}
-                      </option>
-                    ))}
-                </select>
-
-                {errors.selectedSchoolId?.message && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.selectedSchoolId.message}
+            {referenceDetails && !referenceLoading && showSchoolContext && (
+              <div
+                className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"
+                aria-live="polite"
+              >
+                <p className="font-medium text-blue-900">
+                  {referenceDetails.display?.title ||
+                    referenceDetails.schoolName}
+                </p>
+                {tokenLabel && (
+                  <p className="text-sm text-blue-700 mt-1">
+                    {tokenLabel}
                   </p>
                 )}
               </div>
-            </div>
+            )}
 
-            <input
-              type="hidden"
-              {...register('registrationType')}
-            />
-
-            <input
-              type="hidden"
-              {...register('selectedSchoolId')}
-            />
+            {referenceDetails &&
+              !referenceLoading &&
+              !showSchoolContext && (
+                <div
+                  className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3"
+                  aria-live="polite"
+                >
+                  {referenceDetails.counsellorName && (
+                    <p className="font-medium text-gray-900">
+                      {referenceDetails.counsellorName}
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-600 mt-1">
+                    Individual registration
+                  </p>
+                  {tokenLabel && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      {tokenLabel}
+                    </p>
+                  )}
+                </div>
+              )}
           </div>
 
           <div className="flex items-start gap-2 mt-2">
@@ -579,7 +488,8 @@ const StudentRegistrationForm = () => {
             disabled={
               isSubmitting ||
               !isOtpVerified ||
-              !acceptedTerms
+              !acceptedTerms ||
+              !referenceDetails
             }
           >
             {isSubmitting ? 'Registering...' : 'Sign Up'}
