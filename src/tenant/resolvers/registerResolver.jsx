@@ -1,13 +1,12 @@
-import DefaultRegistration from "../../pages/StudentRegistration"
-
-import MappuStudentRegistration from "../../pages/overrides/mappu/auth/StudentRegistration"
+import DefaultRegistration from '../../pages/StudentRegistration';
+import MappuStudentRegistration from '../../pages/overrides/mappu/auth/StudentRegistration';
 
 export function resolveStudentRegistration(tenant) {
-  const code = tenant?.code
+  const code = tenant?.code;
 
   const registry = {
-    mapau: MappuStudentRegistration,
-  }
+    mappu: MappuStudentRegistration,
+  };
 
-  return registry[code] || DefaultRegistration
+  return registry[code] || DefaultRegistration;
 }

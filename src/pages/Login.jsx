@@ -8,6 +8,8 @@ import rightTop from '../assets/image1.png';
 import rightBottom from '../assets/image2.png';
 import { sendLoginOtp, verifyLoginOtp } from '../api/authService';
 import { toast } from 'sonner';
+import { platformRedirectUrl } from '../tenant/slug';
+import { useTenant } from '../tenant/TenantContext';
 
 const RESEND_OTP_TIMEOUT = 300; // 5 minutes
 const RESEND_STORAGE_KEY = 'otp_last_sent';
@@ -18,6 +20,7 @@ const Login = () => {
     const [otpSent, setOtpSent] = useState(false);
     const [loading, setLoading] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
+    const tenant = useTenant();
 
     const navigate = useNavigate();
 
@@ -49,13 +52,22 @@ const Login = () => {
             toast.success('Login successful');
             localStorage.removeItem(RESEND_STORAGE_KEY);
 
-            // Redirect based on role
-            if (role === 'STUDENT') window.location.href = import.meta.env.VITE_CAREER_GUIDANCE_PLATFORM_URL;
-            else if (role === 'COUNSELLOR') window.location.href = import.meta.env.VITE_CAREER_GUIDANCE_PLATFORM_URL + "/counsellor/dashboard";
-            else if (role === 'INSTITUTION') window.location.href = import.meta.env.VITE_CAREER_GUIDANCE_PLATFORM_URL + "/institution/students";
-            else navigate('/');
+            // Redirect based on role (tenant-aware)
+            if (role === 'STUDENT') {
+              window.location.href = platformRedirectUrl(tenant?.code, '/');
+            } else if (role === 'COUNSELLOR') {
+              window.location.href = platformRedirectUrl(
+                tenant?.code,
+                '/counsellor/dashboard'
+              );
+            } else if (role === 'INSTITUTION') {
+              window.location.href = platformRedirectUrl(
+                tenant?.code,
+                '/institution/students'
+              );
+            } else navigate('/');
         } catch (err) {
-            toast.error(err?.response?.data?.message || 'Invalid OTP');
+            toast.error(err?.response?.data?.message || err?.message || 'Invalid OTP');
         } finally {
             setLoading(false);
         }

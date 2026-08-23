@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getSlugFromPath } from '../tenant/slug';
 
 const api = axios.create({
   baseURL:
@@ -9,6 +10,13 @@ const api = axios.create({
 const careerApi = axios.create({
   baseURL: import.meta.env.VITE_CAREER_GUIDANCE_PLATFORM_API_URL || '/',
   withCredentials: true,
+});
+
+api.interceptors.request.use((config) => {
+  const slug = getSlugFromPath();
+  config.headers = config.headers || {};
+  config.headers['X-Tenant-Slug'] = slug;
+  return config;
 });
 
 api.interceptors.response.use(

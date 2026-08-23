@@ -11,6 +11,7 @@ import {
   getReferenceCodeDetails,
 } from '../../api/authService';
 import { resolvePostRegisterRedirect } from '../../utils/postRegisterRedirect';
+import { getSlugFromPath, platformRedirectUrl } from '../../tenant/slug';
 
 import Input from '../UI/Input';
 import Button from '../UI/Button';
@@ -215,8 +216,7 @@ const StudentRegistrationForm = () => {
 
       const redirectUrl = resolvePostRegisterRedirect({
         payment: payment || null,
-        careerPlatformUrl:
-          import.meta.env.VITE_CAREER_GUIDANCE_PLATFORM_URL,
+        careerPlatformUrl: platformRedirectUrl(getSlugFromPath(), '/'),
       });
 
       toast.success(message || 'Registration successful');

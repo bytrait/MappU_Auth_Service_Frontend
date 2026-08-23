@@ -10,6 +10,7 @@ import {
 import Input from '../UI/Input';
 import Button from '../UI/Button';
 import { CounsellorRegistrationSchema } from '../../validators/counsellorRegister.validator';
+import { getSlugFromPath, platformRedirectUrl } from '../../tenant/slug';
 
 const OTP_TIMER_KEY = 'counsellor_registration_otp_timer';
 
@@ -105,7 +106,10 @@ const CounsellorRegistrationForm = () => {
       });
 
       toast.success('Registration successful!');
-      window.location.href = import.meta.env.VITE_CAREER_GUIDANCE_PLATFORM_URL + "/counsellor/dashboard";
+      window.location.href = platformRedirectUrl(
+        getSlugFromPath(),
+        '/counsellor/dashboard'
+      );
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Registration failed');
     }

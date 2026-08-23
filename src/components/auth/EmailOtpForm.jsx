@@ -12,6 +12,8 @@ import OverlayCard from '../common/OverlayCard';
 
 import { sendLoginOtp, verifyLoginOtp } from '../../api/authService';
 import { toast } from 'sonner';
+import { platformRedirectUrl } from '../../tenant/slug';
+import { useTenant } from '../../tenant/TenantContext';
 
 // Dummy paths (you replace later)
 import authImage from '../../assets/auth-image.jpeg';
@@ -38,6 +40,7 @@ const EmailOtpForm = () => {
     const [otpSent, setOtpSent] = useState(false);
     const [loading, setLoading] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
+    const tenant = useTenant();
 
     const navigate = useNavigate();
 
@@ -73,9 +76,9 @@ const EmailOtpForm = () => {
             toast.success('Login successful');
             localStorage.removeItem(RESEND_STORAGE_KEY);
 
-            window.location.href = import.meta.env.VITE_CAREER_GUIDANCE_PLATFORM_URL;
+            window.location.href = platformRedirectUrl(tenant?.code || 'mappu', '/');
         } catch (err) {
-            toast.error(err?.response?.data?.message || 'Invalid OTP');
+            toast.error(err?.response?.data?.message || err?.message || 'Invalid OTP');
         } finally {
             setLoading(false);
         }

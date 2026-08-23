@@ -15,6 +15,7 @@ import rightTop from '../assets/image1.png';
 import rightBottom from '../assets/image2.png';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import { platformRedirectUrl, getSlugFromPath } from '../tenant/slug';
 
 const RESEND_STORAGE_KEY = 'register_otp_last_sent';
 const RESEND_OTP_TIMEOUT = 300;
@@ -146,7 +147,7 @@ const StudentRegistration = () => {
             };
             await registerUser(payload);
             toast.success('Registration successful');
-            window.location.href = import.meta.env.VITE_CAREER_GUIDANCE_PLATFORM_URL + '/counsellor/students';
+            window.location.href = platformRedirectUrl(getSlugFromPath(), '/');
         } catch (err) {
             const backendMessage = err?.response?.data?.message;
             const backendErrors = err?.response?.data?.errors;

@@ -1,20 +1,26 @@
 // src/api/authService.js
 
 import api from './axios';
+import { getSlugFromPath } from '../tenant/slug';
+
+function withTenant(payload = {}) {
+  const tenantSlug = getSlugFromPath();
+  return { ...payload, tenantSlug };
+}
 
 export const sendLoginOtp = ({ email }) => {
-  return api.post('/auth/send-login-otp', { email });
+  return api.post('/auth/send-login-otp', withTenant({ email }));
 };
 
 export const verifyLoginOtp = ({ email, otp }) => {
-  return api.post('/auth/verify-login-otp', { email, otp });
+  return api.post('/auth/verify-login-otp', withTenant({ email, otp }));
 };
 
 export const sendRegisterOtp = (payload) =>
-  api.post('/auth/send-register-otp', payload);
+  api.post('/auth/send-register-otp', withTenant(payload));
 
 export const verifyRegisterOtp = (payload) =>
-  api.post('/auth/verify-register-otp', payload);
+  api.post('/auth/verify-register-otp', withTenant(payload));
 
 /**
  * Preview a reference code tied to one token (counsellor or school).
@@ -25,7 +31,7 @@ export const getReferenceCodeDetails = (referenceCode) =>
   });
 
 export const registerUser = (payload) =>
-  api.post('/auth/register', payload);
+  api.post('/auth/register', withTenant(payload));
 
 /**
  * Register a student; server derives registration context from the token.
