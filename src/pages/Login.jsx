@@ -3,12 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import EmailInput from '../components/auth/EmailInput';
 import OtpInput from '../components/auth/OtpInput';
 import Button from '../components/UI/Button';
-import logo from '../assets/bytrait_logo.png';
 import rightTop from '../assets/image1.png';
 import rightBottom from '../assets/image2.png';
 import { sendLoginOtp, verifyLoginOtp } from '../api/authService';
 import { toast } from 'sonner';
-import { platformRedirectUrl } from '../tenant/slug';
+import { DEFAULT_TENANT_SLUG, platformRedirectUrl } from '../tenant/slug';
 import { useTenant } from '../tenant/TenantContext';
 
 const RESEND_OTP_TIMEOUT = 300; // 5 minutes
@@ -21,6 +20,8 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
     const tenant = useTenant();
+    const logo = tenant?.theme?.logo || '/logos/bytrait_logo.png';
+    const brandName = tenant?.name || 'ByTrait';
 
     const navigate = useNavigate();
 
@@ -54,15 +55,18 @@ const Login = () => {
 
             // Redirect based on role (tenant-aware)
             if (role === 'STUDENT') {
-              window.location.href = platformRedirectUrl(tenant?.code, '/');
+              window.location.href = platformRedirectUrl(
+                tenant?.code || DEFAULT_TENANT_SLUG,
+                '/'
+              );
             } else if (role === 'COUNSELLOR') {
               window.location.href = platformRedirectUrl(
-                tenant?.code,
+                tenant?.code || DEFAULT_TENANT_SLUG,
                 '/counsellor/dashboard'
               );
             } else if (role === 'INSTITUTION') {
               window.location.href = platformRedirectUrl(
-                tenant?.code,
+                tenant?.code || DEFAULT_TENANT_SLUG,
                 '/institution/students'
               );
             } else navigate('/');
@@ -100,7 +104,7 @@ const Login = () => {
                     {/* Left side */}
                     <div className="w-full md:w-5/12 p-8">
                         <div className="mb-6">
-                            <img src={logo} alt="ByTrait Logo" className="w-60 mb-4" />
+                            <img src={logo} alt={`${brandName} Logo`} className="w-60 mb-4" />
                             <h1 className="text-2xl font-semibold mb-2">Log In</h1>
                         </div>
 

@@ -1,7 +1,11 @@
 import { useState } from "react";
+import { useTenant } from "../tenant/TenantContext";
 
 export default function TermsAndConditionsPage() {
     const [accepted, setAccepted] = useState(false);
+    const tenant = useTenant();
+    const brandName =
+        tenant?.customization?.displayName || tenant?.name || "ByTrait";
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 py-10 px-4 md:px-8">
@@ -12,7 +16,7 @@ export default function TermsAndConditionsPage() {
                         Terms & Conditions
                     </h1>
                     <p className="text-gray-500 mt-2">
-                        Mapp My University • Last Updated: 26th March 2026
+                        {brandName} • Last Updated: 26th March 2026
                     </p>
                 </div>
 
@@ -20,7 +24,7 @@ export default function TermsAndConditionsPage() {
                 <div className="bg-white shadow-xl rounded-2xl p-6 md:p-10 space-y-8">
 
                     <Section title="1. Introduction">
-                        Welcome to <strong>Mapp My University</strong>. These Terms & Conditions govern your use of our platform. By accessing or using the platform, you agree to comply with and be bound by these terms. If you do not agree, please discontinue use immediately.
+                        Welcome to <strong>{brandName}</strong>. These Terms & Conditions govern your use of our platform. By accessing or using the platform, you agree to comply with and be bound by these terms. If you do not agree, please discontinue use immediately.
                     </Section>
 
                     <Section title="2. Purpose of the Platform">

@@ -1,6 +1,6 @@
 // components/auth/AuthHeader.jsx
 
-const AUTH_HEADLINE = 'MapU Career Psychometric Assessment';
+const AUTH_HEADLINE = 'ByTrait Career Psychometric Assessment';
 const AUTH_SUBHEADLINE = 'Discover Your True Potential';
 
 const AuthHeader = ({

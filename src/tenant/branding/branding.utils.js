@@ -1,15 +1,27 @@
 export function applyTitle(name) {
-  document.title = name || "Bytrait"
+  document.title = name || "ByTrait"
 }
 
+/**
+ * Replace every icon / apple-touch-icon link so hardcoded HTML defaults
+ * (and multi-size icon tags) do not keep showing the wrong brand.
+ */
 export function applyFavicon(path) {
-  let link = document.querySelector("link[rel*='icon']")
+  if (!path) return
 
-  if (!link) {
-    link = document.createElement("link")
-    link.rel = "icon"
-    document.head.appendChild(link)
-  }
+  const existing = document.querySelectorAll(
+    "link[rel='icon'], link[rel='shortcut icon'], link[rel*='icon']"
+  )
+  existing.forEach((node) => node.remove())
 
-  link.href = path
+  const icon = document.createElement("link")
+  icon.rel = "icon"
+  icon.href = path
+  if (path.endsWith(".svg")) icon.type = "image/svg+xml"
+  document.head.appendChild(icon)
+
+  const apple = document.createElement("link")
+  apple.rel = "apple-touch-icon"
+  apple.href = path
+  document.head.appendChild(apple)
 }

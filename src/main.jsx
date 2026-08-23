@@ -21,7 +21,10 @@ try {
     code: DEFAULT_TENANT_SLUG,
     name: 'ByTrait',
     plan: 'basic',
-    theme: { favicon: '/favicon.ico' },
+    theme: {
+      favicon: '/favicons/bytrait.svg',
+      logo: '/logos/bytrait_logo.png',
+    },
     customization: {},
   };
 }

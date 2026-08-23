@@ -12,12 +12,10 @@ import OverlayCard from '../common/OverlayCard';
 
 import { sendLoginOtp, verifyLoginOtp } from '../../api/authService';
 import { toast } from 'sonner';
-import { platformRedirectUrl } from '../../tenant/slug';
+import { DEFAULT_TENANT_SLUG, platformRedirectUrl } from '../../tenant/slug';
 import { useTenant } from '../../tenant/TenantContext';
 
-// Dummy paths (you replace later)
 import authImage from '../../assets/auth-image.jpeg';
-import logo from '../../assets/mappu_logo.png';
 
 const RESEND_OTP_TIMEOUT = 300;
 const RESEND_STORAGE_KEY = 'otp_last_sent';
@@ -76,7 +74,10 @@ const EmailOtpForm = () => {
             toast.success('Login successful');
             localStorage.removeItem(RESEND_STORAGE_KEY);
 
-            window.location.href = platformRedirectUrl(tenant?.code || 'mappu', '/');
+            window.location.href = platformRedirectUrl(
+                tenant?.code || DEFAULT_TENANT_SLUG,
+                '/'
+            );
         } catch (err) {
             toast.error(err?.response?.data?.message || err?.message || 'Invalid OTP');
         } finally {
@@ -119,7 +120,10 @@ const EmailOtpForm = () => {
 
             {/* RIGHT FORM */}
             <AuthCard>
-                <AuthHeader logo={logo} />
+                <AuthHeader
+                    logo={tenant?.theme?.logo || '/logos/bytrait_logo.png'}
+                    headline={`${tenant?.name || 'ByTrait'} Career Psychometric Assessment`}
+                />
 
                 <EmailInput email={email} setEmail={setEmail} />
 

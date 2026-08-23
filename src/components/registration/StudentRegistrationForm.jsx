@@ -24,7 +24,7 @@ import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
 import authImage from '../../assets/auth-image.jpeg';
-import logo from '../../assets/mappu_logo.png';
+import { useTenant } from '../../tenant/TenantContext';
 
 const RESEND_STORAGE_KEY = 'register_otp_last_sent';
 const RESEND_OTP_TIMEOUT = 300;
@@ -46,6 +46,7 @@ const isReferenceCodeError = (err) =>
   err?.status === 409;
 
 const StudentRegistrationForm = () => {
+  const tenant = useTenant();
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
@@ -317,7 +318,10 @@ const StudentRegistrationForm = () => {
       </ImageSection>
 
       <AuthCard>
-        <AuthHeader logo={logo} />
+        <AuthHeader
+          logo={tenant?.theme?.logo || '/logos/bytrait_logo.png'}
+          headline={`${tenant?.name || 'ByTrait'} Career Psychometric Assessment`}
+        />
 
         <form
           onSubmit={handleSubmit(onSubmit)}
