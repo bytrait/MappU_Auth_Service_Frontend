@@ -1,7 +1,7 @@
 const Input = ({ label, type = 'text', error, className = '', ...rest }) => {
   return (
     <div className="flex flex-col w-full">
-      {label && <label className="text-sm mb-1 text-muted">{label}</label>}
+      {label && <label className="font-urbanist text-sm mb-1 text-muted">{label}</label>}
       <input
         type={type}
         className={`w-full px-4 py-4 border border-gray-300 rounded-md focus:outline-none focus:border-2 focus:border-primary ${className}`}
